@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Chat App</title>
+    <style>
+        .container {
+            margin: auto;
+            width: 60%;
+            border: 5px solid #000000;
+            padding: 10px;
+        }
+
+        #chatDisplay p {
+            font-size: 25px;
+        }
+
+        .bottom-panel,
+        .bottom-panel input {
+            font-size: 25px;
+        }
+
+        #sendButton {
+            font-size: 22px;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"
+        integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="container" style="height: 500px;max-height: 500px;overflow-y: scroll;">
+        <div id="chatDisplay"></div>
+    </div>
+    <div class="container bottom-panel">
+        <button id="connect">Connect</button>
+        <button id="disconnect" disabled>Disconnect</button>
+        <p>Number of people in the chat: <span id="userCount"></span></p>
+        <p>Current Server Time: <span id="time-display"></span></p>
+        <p>Your Name: <input type="text" id="name" disabled /></p>
+        <p>Your Message: <input type="text" id="message" style="width: 100%" disabled /></p>
+        <button id='sendButton' disabled>Send Message</button>
+    </div>
+    <script>
+        const displayArea = document.querySelector('#chatDisplay');
+
+        const connectButton = document.querySelector('#connect');
+        const disconnectButton = document.querySelector('#disconnect');
+        const userCount = document.querySelector('#userCount');
+        const sendButton = document.querySelector('#sendButton');
+        const timeDisplay = document.querySelector('#time-display');
+        const nameTextbox = document.querySelector('#name');
+        const messageTextbox = document.querySelector('#message');
+
+        const addMessageToDisplay = (messageText) => {
+            const pTag = document.createElement('p');
+            pTag.innerHTML = messageText;
+            displayArea.appendChild(pTag);
+        }
+
+        connectButton.addEventListener('click', () => {
+            const socket = io(); //connection to server
+
+            enableUI();
+
+            socket.on('Welcome', message => { //Welcome message displayed when connected
+                console.log(message);
+                addMessageToDisplay(message);
+            })
+            socket.on('notification', message => { //Notify when new user connects or disconnects
+                console.log(message);
+                addMessageToDisplay(message);
+            })
+
+            socket.on('users', users => { //tracks number of users connected
+                userCount.innerHTML = users.count;
+            })
+
+            socket.on('time', time => { //displays server time
+                timeDisplay.innerHTML = time;
+            })
+
+            socket.on('message', message => { //displays user's messages
+                console.log(message.name)
+                console.log(message.message)
+                addMessageToDisplay(`[${message.name}] ${message.message}`);
+            })
+
+            sendButton.addEventListener('click', () => { //button to submit user's message with conditions
+                if (nameTextbox.value.length === 0) {
+                    alert('You must enter a name')
+                } else if (messageTextbox.value.length === 0) {
+                    alert('You must enter a message')
+                } else {
+                    socket.emit('message', {
+                        name: nameTextbox.value,
+                        message: messageTextbox.value
+                    })
+                    messageTextbox.value = '';
+                }
+            })
+
+            disconnectButton.addEventListener('click', () => {
+                disableUI();
+                socket.disconnect();
+            })
+        })
+
+        function enableUI()
+        {
+            connectButton.disabled = true;
+            disconnectButton.disabled = false;
+            nameTextbox.disabled = false;
+            messageTextbox.disabled = false;
+            sendButton.disabled = false;
+        }
+        function disableUI()
+        {
+            timeDisplay.innerHTML = '';
+                userCount.innerHTML = '';
+                displayArea.innerHTML = '';
+                disconnectButton.disabled = true;
+                connectButton.disabled = false;
+                nameTextbox.disabled = true;
+                messageTextbox.disabled = true;
+                sendButton.disabled = true;
+        }
+    </script>
+</body>
+
+</html>
